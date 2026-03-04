@@ -76,23 +76,23 @@ def pgd_attack(model, original_audio, labels, device, epsilon = 0.02, num_iter =
     # Return the final adversarial tensor, detached from the computation graph
     return perturbed_audio.detach()
 
-def awgn_attack(original_audio, std_dev = 0.03):
+def awgn_attack(original_audio, device = None, std_dev = 0.03):
     """
     Adds gaussian noise to original data, should be called in constructor of client
     
     :param original_audio: raw audio data
     """
+    with torch.no_grad():
+        # Creates gaussian random variable with specified variance and adds to data
+        noise = torch.randn_like(original_audio, device=device) * std_dev
+        noisy_data = original_audio + noise
 
-    # Creates gaussian random variable with specified variance and adds to data
-    noise = torch.randn_like(original_audio) * std_dev
-    noisy_data = original_audio + noise
-
-    # Specified that the data here needs to be dynamically clipped.
-    domain_min = torch.min(original_audio)
-    domain_max = torch.max(original_audio)
-    
-    # 3. Clip elementwise to X (as requested by Equation 9)
-    noisy_data = torch.clamp(noisy_data, min=domain_min, max=domain_max)
+        # Specified that the data here needs to be dynamically clipped.
+        domain_min = torch.min(original_audio)
+        domain_max = torch.max(original_audio)
+        
+        # 3. Clip elementwise to X (as requested by Equation 9)
+        noisy_data = torch.clamp(noisy_data, min=domain_min, max=domain_max)
 
     return noisy_data
 

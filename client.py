@@ -19,17 +19,7 @@ class Client():
         self.model = CNN_Model().to(device)
         self.device = device
         self.attack_type = attack_type
-
-        if self.attack_type == "awgn":
-            poisoned_dataset = []
-            # Iterate through the DataLoader to poison the raw tensors
-            for data, label in client_data:
-                poisoned_data = awgn_attack(data)
-                poisoned_dataset.append((poisoned_data, label))
-            
-            self.tensor_data = poisoned_dataset
-        else:
-            self.tensor_data = client_data
+        self.tensor_data = client_data
 
     def train(self, global_weights, tau_steps = 10, learning_rate = 1E-4, wd = 1E-4, device = None):
 
@@ -57,9 +47,11 @@ class Client():
             data, label = data.to(device), label.to(device)
 
             if self.attack_type == "fgsm":
-                data = fgsm_attack(self.model, data, label, self.device)
-            if self.attack_type == "pgd":
-                data = pgd_attack(self.model, data, label, self.device)
+                data = fgsm_attack(self.model, data, label, device=self.device)
+            elif self.attack_type == "pgd":
+                data = pgd_attack(self.model, data, label, device=self.device)
+            elif self.attack_type == "awgn":
+                data = awgn_attack(data, device=self.device)
             
             optimizer.zero_grad()
 

@@ -17,6 +17,7 @@ class Simulator():
         self.acc_history = []
         self.malicious_client_list = None
         self.attack_type = None
+        self.framework_active = False
 
         self.device = torch.device(
             "cuda" if torch.cuda.is_available() 
@@ -34,7 +35,7 @@ class Simulator():
         # Creating server and giving reserve set
         self.global_server = Global_Server(reserve_set=reserve_data, test_loader=testing_set, device = self.device)
 
-    def run_simulation(self, attack_type = None, attack_ratio = 0.5, num_rounds = 60, pretrain_rounds = 3, checkpoint_path = None):
+    def run_simulation(self, attack_type = None, framework_active = False, attack_ratio = 0.5, num_rounds = 60, pretrain_rounds = 3, checkpoint_path = None):
 
         initial_lr = 1e-4
         decay_rate = 0.9
@@ -45,9 +46,13 @@ class Simulator():
             self.acc_history = []
             self.current_round = 0
             self.global_server.reset_weights(device=self.device)
+            self.framework_active = framework_active
+            self.attack_type = attack_type
 
-            # First need to pretrain server on reserve set
-            self.global_server.retrain(num_epochs=pretrain_rounds, learning_rate=initial_lr, device = self.device)
+            # First need to pretrain server on reserve set if framework active
+            if self.framework_active:
+                print("Pre-training server on reserve set...")
+                self.global_server.retrain(num_epochs=pretrain_rounds, learning_rate=initial_lr, device = self.device)
         else:
             print(f"\n--- Resuming from checkpoint: {checkpoint_path} ---")
             checkpoint = torch.load(checkpoint_path, map_location=self.device)
@@ -55,6 +60,8 @@ class Simulator():
             # 1. Restore the mathematical timeline
             self.current_round = checkpoint['round']
             self.acc_history = checkpoint['acc_history']
+            self.attack_type = checkpoint['attack_type']
+            self.framework_active = checkpoint['framework_active']
             
             # 2. Inject the saved weights directly into the server's model
             self.global_server.model.load_state_dict(checkpoint['model_state_dict'])
@@ -65,7 +72,6 @@ class Simulator():
 
         num_attackers = int(attack_ratio * len(self.client_list))
         self.malicious_client_list = set(random.sample(self.client_list, num_attackers))
-        self.attack_type = attack_type
 
         for i in range(self.current_round, num_rounds):
             start_time = time.perf_counter()
@@ -82,9 +88,22 @@ class Simulator():
                 checkpoint_data = {
                     'round': i + 1,
                     'model_state_dict': self.global_server.model.state_dict(),
-                    'acc_history': self.acc_history
+                    'acc_history': self.acc_history,
+                    'attack_type': self.attack_type,
+                    'framework_active': self.framework_active
                 }
-                file_name = f'/content/drive/MyDrive/reverb_fl_{attack_type}_checkpoint_round_{i+1}.pt'
+
+                if self.attack_type is None:
+                    attack_label = "No Attack"
+                else:
+                    attack_label = self.attack_type.upper()
+
+                if self.framework_active:
+                    framework_type = "REVERB-FL"
+                else:
+                    framework_type = "Baseline FedAvg"
+
+                file_name = f'/content/drive/MyDrive/{framework_type}_{attack_label}_checkpoint_round_{i+1}.pt'
 
                 torch.save(checkpoint_data, file_name)
                 print(f"Checkpoint saved for Round {i+1} of {attack_type}!")
@@ -100,10 +119,11 @@ class Simulator():
         
         self.global_server.aggregate(weight_update_list)
 
-        server_start_time = time.perf_counter()
-        self.global_server.retrain(learning_rate=current_lr, device = self.device)
-        server_end_time = time.perf_counter()
-        print('Total server retraining time taken: %.2f s' % (server_end_time - server_start_time))
+        if self.framework_active:
+            server_start_time = time.perf_counter()
+            self.global_server.retrain(learning_rate=current_lr, device = self.device)
+            server_end_time = time.perf_counter()
+            print('Total server retraining time taken: %.2f s' % (server_end_time - server_start_time))
 
         return self.global_server.compute_acc()
 
@@ -144,19 +164,24 @@ class Simulator():
         plt.plot(rounds, percentages, marker='o', linestyle='-', color='b', label='Global Model Accuracy')
         
         if self.attack_type is None:
-            attack_label = "Vanilla Baseline (No Attack)"
+            attack_label = "No Attack"
         else:
             attack_label = self.attack_type.upper()
+
+        if self.framework_active:
+            framework_type = "REVERB-FL"
+        else:
+            framework_type = "Baseline FedAvg"
         
         # 5. Add labels, title, and grid
-        plt.title(f'REVERB-FL: Global Model Accuracy with Attack Type: {attack_label}')
+        plt.title(f'{framework_type}: Global Model Accuracy with Attack Type: {attack_label}')
         plt.xlabel('Communication Round')
         plt.ylabel('Test Accuracy (%)')
         plt.grid(True, linestyle='--', alpha=0.7)
         plt.legend()
         
         # 6. Adjust layout and display the plot
-        filename = f'reverb_fl_accuracy_{attack_label}.png'
+        filename = f'{framework_type}_accuracy_{attack_label}.png'
         
         plt.savefig(filename, bbox_inches='tight')
         print(f"Graph successfully saved as {filename}")
