@@ -91,21 +91,31 @@ class Global_Server():
 
     def compute_acc(self):
         self.model.eval()
+        
+        num_correct = 0
+        num_samples = self.test_y.size(0)
+        
+        # Slicing the giant VRAM tensor into safe chunks
+        chunk_size = 1024 
 
         with torch.no_grad():
-            # The GPU processes the entire dataset in a single matrix multiplication
-            scores = self.model(self.test_x)
-            _, preds = scores.max(1)
+            # Loop through the pre-loaded GPU memory, not the hard drive!
+            for i in range(0, num_samples, chunk_size):
+                
+                # Grab a chunk of the data (already on the GPU)
+                x_chunk = self.test_x[i : i + chunk_size]
+                y_chunk = self.test_y[i : i + chunk_size]
+                
+                # Push only the chunk through the model
+                scores = self.model(x_chunk)
+                _, preds = scores.max(1)
+                
+                num_correct += (preds == y_chunk).sum().item()
             
-            # The comparison is perfectly vectorized
-            num_correct = (preds == self.test_y).sum().item()
-            num_samples = self.test_y.size(0)
-
         acc = float(num_correct) / num_samples
         print('Got %d / %d correct (%.2f%%)' % (num_correct, num_samples, 100 * acc))
         
         self.model.train()
-
         return acc
     
     def reset_weights(self, device=None):
