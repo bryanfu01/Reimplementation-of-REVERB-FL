@@ -34,6 +34,10 @@ class Simulator():
 
     def run_simulation(self, attack_type = None, attack_ratio = 0.5, num_rounds = 60, pretrain_rounds = 3, checkpoint_path = None):
 
+        initial_lr = 1e-4
+        decay_rate = 0.9
+        decay_steps = 1000.0
+        
         if checkpoint_path is None:
             print(f"\n--- Initializing new run. Attack: {attack_type} ---")
             self.acc_history = []
@@ -54,10 +58,6 @@ class Simulator():
             self.global_server.model.load_state_dict(checkpoint['model_state_dict'])
             
             print(f"Successfully loaded. Resuming at round {self.current_round}.")
-
-        initial_lr = 1e-4
-        decay_rate = 0.9
-        decay_steps = 1000.0
 
         total_client_steps = 0
 
