@@ -14,7 +14,7 @@ def main():
         checkpoint_path="/content/drive/MyDrive/reverb_fl_checkpoint_round_5.pt"
     )
     """
-    simulation.run_simulation(attack_type = 'fgsm', num_rounds=num_rounds)
+    #simulation.run_simulation(attack_type = 'fgsm', num_rounds=num_rounds)
     simulation.run_simulation(attack_type = 'pgd', num_rounds=num_rounds)
     simulation.run_simulation(attack_type = 'awgn', num_rounds=num_rounds)
 
