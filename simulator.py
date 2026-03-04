@@ -32,13 +32,28 @@ class Simulator():
         # Creating server and giving reserve set
         self.global_server = Global_Server(reserve_data, device = self.device)
 
-    def run_simulation(self, attack_type = None, attack_ratio = 0.5, num_rounds = 60, pretrain_rounds = 3):
+    def run_simulation(self, attack_type = None, attack_ratio = 0.5, num_rounds = 60, pretrain_rounds = 3, checkpoint_path = None):
 
-        print(f"\n--- Initializing new run. Attack: {attack_type} ---")
-        self.acc_history = []
-        self.current_round = 0
+        if checkpoint_path is None:
+            print(f"\n--- Initializing new run. Attack: {attack_type} ---")
+            self.acc_history = []
+            self.current_round = 0
+            self.global_server.reset_weights(device=self.device)
 
-        self.global_server.reset_weights(device=self.device)
+            # First need to pretrain server on reserve set
+            self.global_server.retrain(num_epochs=pretrain_rounds, learning_rate=initial_lr, device = self.device)
+        else:
+            print(f"\n--- Resuming from checkpoint: {checkpoint_path} ---")
+            checkpoint = torch.load(checkpoint_path, map_location=self.device)
+            
+            # 1. Restore the mathematical timeline
+            self.current_round = checkpoint['round']
+            self.acc_history = checkpoint['acc_history']
+            
+            # 2. Inject the saved weights directly into the server's model
+            self.global_server.model.load_state_dict(checkpoint['model_state_dict'])
+            
+            print(f"Successfully loaded. Resuming at round {self.current_round}.")
 
         initial_lr = 1e-4
         decay_rate = 0.9
@@ -50,11 +65,7 @@ class Simulator():
         self.malicious_client_list = set(random.sample(self.client_list, num_attackers))
         self.attack_type = attack_type
 
-        # First need to pretrain server on reserve set
-        self.global_server.retrain(num_epochs=pretrain_rounds, learning_rate=initial_lr, device = self.device)
-
-
-        for i in range(num_rounds):
+        for i in range(self.current_round, num_rounds):
             start_time = time.perf_counter()
             current_lr = initial_lr * (decay_rate ** (total_client_steps / decay_steps))
 
@@ -66,11 +77,15 @@ class Simulator():
             print('Communication round time taken: %d s' % (end_time - start_time))
 
             if (i + 1) % 5 == 0:
-                torch.save(
-                    self.global_server.model.state_dict(), 
-                    f'/content/drive/MyDrive/reverb_fl_checkpoint_round_{i+1}.pt'
-                )
-                print(f"Checkpoint saved for Round {i+1}!")
+                checkpoint_data = {
+                    'round': i + 1,
+                    'model_state_dict': self.global_server.model.state_dict(),
+                    'acc_history': self.acc_history
+                }
+                file_name = f'/content/drive/MyDrive/reverb_fl_{attack_type}_checkpoint_round_{i+1}.pt'
+
+                torch.save(checkpoint_data, file_name)
+                print(f"Checkpoint saved for Round {i+1} of {attack_type}!")
         
         self._plot_acc()
 
@@ -88,7 +103,10 @@ class Simulator():
         server_end_time = time.perf_counter()
         print('Total server retraining time taken: %.2f s' % (server_end_time - server_start_time))
 
+        data_load_start_time = time.perf_counter()
         testing_set = self.data_manager.get_test_loader()
+        data_load_end_time = time.perf_counter()
+        print('Total testing set loading time taken: %.2f s' % (data_load_end_time - data_load_start_time))
 
         return self.global_server.compute_acc(testing_set)
 
