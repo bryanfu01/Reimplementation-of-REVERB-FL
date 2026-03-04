@@ -34,10 +34,24 @@ class Global_Server():
     - reset_state: Resets the state of the global server after a simulation has finished.
     """
 
-    def __init__(self, reserve_set, device = None):
+    def __init__(self, reserve_set, test_loader, device = None):
         self.model = CNN_Model().to(device)
         self.reserve = reserve_set
         self.device = device
+
+        print("Pre-loading testing dataset into VRAM...")
+        test_x_list = []
+        test_y_list = []
+        
+        # We loop through the hard drive exactly ONCE here
+        for x, y in test_loader:
+            test_x_list.append(x)
+            test_y_list.append(y)
+            
+        # Concatenate everything into one giant tensor and permanently bolt to GPU
+        self.test_x = torch.cat(test_x_list).to(self.device, non_blocking=True)
+        self.test_y = torch.cat(test_y_list).to(self.device, non_blocking=True)
+        print("Testing dataset successfully locked into GPU memory.")
 
     def aggregate(self, client_weight_list):
         avg_weights = {}
@@ -75,19 +89,20 @@ class Global_Server():
 
                 optimizer.step()
 
-    def compute_acc(self, testing_set):
+    def compute_acc(self):
         self.model.eval()
 
-        num_correct, num_samples = 0, 0
         with torch.no_grad():
-            for x, y in testing_set:
-                x, y = x.to(next(self.model.parameters()).device), y.to(next(self.model.parameters()).device)
-                scores = self.model(x)
-                _, preds = scores.max(1)
-                num_correct += (preds == y).sum().item()
-                num_samples += preds.size(0)
-            acc = float(num_correct) / num_samples
-            print('Got %d / %d correct (%.2f%%)' % (num_correct, num_samples, 100 * acc))
+            # The GPU processes the entire dataset in a single matrix multiplication
+            scores = self.model(self.test_x)
+            _, preds = scores.max(1)
+            
+            # The comparison is perfectly vectorized
+            num_correct = (preds == self.test_y).sum().item()
+            num_samples = self.test_y.size(0)
+
+        acc = float(num_correct) / num_samples
+        print('Got %d / %d correct (%.2f%%)' % (num_correct, num_samples, 100 * acc))
         
         self.model.train()
 

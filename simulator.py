@@ -29,15 +29,17 @@ class Simulator():
 
         # Slicing off reserve set for server
         reserve_data = self.data_manager.get_reserve_loader()
+        # Slicing off testing set for server
+        testing_set = self.data_manager.get_test_loader()
         # Creating server and giving reserve set
-        self.global_server = Global_Server(reserve_data, device = self.device)
+        self.global_server = Global_Server(reserve_set=reserve_data, test_loader=testing_set, device = self.device)
 
     def run_simulation(self, attack_type = None, attack_ratio = 0.5, num_rounds = 60, pretrain_rounds = 3, checkpoint_path = None):
 
         initial_lr = 1e-4
         decay_rate = 0.9
         decay_steps = 1000.0
-        
+
         if checkpoint_path is None:
             print(f"\n--- Initializing new run. Attack: {attack_type} ---")
             self.acc_history = []
@@ -103,12 +105,7 @@ class Simulator():
         server_end_time = time.perf_counter()
         print('Total server retraining time taken: %.2f s' % (server_end_time - server_start_time))
 
-        data_load_start_time = time.perf_counter()
-        testing_set = self.data_manager.get_test_loader()
-        data_load_end_time = time.perf_counter()
-        print('Total testing set loading time taken: %.2f s' % (data_load_end_time - data_load_start_time))
-
-        return self.global_server.compute_acc(testing_set)
+        return self.global_server.compute_acc()
 
 
     def _train_clients(self, current_lr):
