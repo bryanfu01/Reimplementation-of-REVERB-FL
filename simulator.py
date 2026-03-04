@@ -57,6 +57,13 @@ class Simulator():
             total_client_steps += 10
             end_time = time.perf_counter()
             print('Communication round time taken: %d s' % (end_time - start_time))
+
+            if (i + 1) % 5 == 0:
+                torch.save(
+                    self.global_server.model.state_dict(), 
+                    f'/content/drive/MyDrive/reverb_fl_checkpoint_round_{i+1}.pt'
+                )
+                print(f"Checkpoint saved for Round {i+1}!")
         
         self._plot_acc()
 
