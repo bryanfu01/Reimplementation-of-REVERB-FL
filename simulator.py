@@ -134,10 +134,10 @@ class Simulator():
         plt.legend()
         
         # 6. Adjust layout and display the plot
-        plt.tight_layout()
-        plt.show()
-
-        #plt.savefig('reverb_fl_accuracy.png')
+        filename = f'reverb_fl_accuracy_{attack_label}.png'
+        
+        plt.savefig(filename, bbox_inches='tight')
+        print(f"Graph successfully saved as {filename}")
 
 
 
