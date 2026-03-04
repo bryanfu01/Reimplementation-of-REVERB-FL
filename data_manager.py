@@ -65,7 +65,7 @@ class DataManager:
         subset = torch.utils.data.Subset(self.training_data, indices)
         
         # DataLoader handles the batching automatically
-        return DataLoader(subset, batch_size=batch_size, shuffle=True, num_workers=4)
+        return DataLoader(subset, batch_size=batch_size, shuffle=True, num_workers=2)
     
     def get_test_loader(self, batch_size = 100):
-        return DataLoader(self.testing_data, batch_size=batch_size, shuffle=False, num_workers=4)
+        return DataLoader(self.testing_data, batch_size=batch_size, shuffle=False, num_workers=2)
