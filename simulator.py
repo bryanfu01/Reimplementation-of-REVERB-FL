@@ -38,7 +38,7 @@ class Simulator():
         self.acc_history = []
         self.current_round = 0
 
-        self.global_server.reset_weights()
+        self.global_server.reset_weights(device=self.device)
 
         initial_lr = 1e-4
         decay_rate = 0.9
