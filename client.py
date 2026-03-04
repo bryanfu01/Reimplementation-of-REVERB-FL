@@ -45,8 +45,6 @@ class Client():
         # data object and iterator
         client_data_iter = iter(self.tensor_data)
 
-        scaler = torch.amp.GradScaler('cuda')
-
         for step in range(tau_steps):
             try:
                 # Grabs the next data entry
@@ -65,19 +63,13 @@ class Client():
             
             optimizer.zero_grad()
 
-            # 1. Wrap the forward pass and loss calculation in autocast
-            with torch.autocast(device_type='cuda', dtype=torch.float16):
-                scores = self.model(data)
-                loss = F.cross_entropy(scores, label)
+            scores = self.model(data)
 
-            # 2. Scale the loss and backpropagate
-            scaler.scale(loss).backward()
+            loss = F.cross_entropy(scores, label)
 
-            # 3. Step the optimizer using the scaler
-            scaler.step(optimizer)
-            
-            # 4. Update the scaler's internal multiplier for the next loop
-            scaler.update()
+            loss.backward()
+
+            optimizer.step()
 
         # Don't need to send the change in weights, just need the new update since 
         # the old weights are constant across all the clients.
