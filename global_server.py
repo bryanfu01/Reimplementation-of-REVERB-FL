@@ -31,16 +31,16 @@ class Global_Server():
         - reference to full clean data set
         Returns
         - accuracy of specific round
+    - reset_state: Resets the state of the global server after a simulation has finished.
     """
 
     def __init__(self, reserve_set, device = None):
         self.model = CNN_Model().to(device)
         self.reserve = reserve_set
+        self.device = device
 
     def aggregate(self, client_weight_list):
         avg_weights = {}
-
-        num_clients = len(client_weight_list)
 
         layer_names = client_weight_list[0].keys()
 
@@ -92,3 +92,6 @@ class Global_Server():
         self.model.train()
 
         return acc
+    
+    def reset_weights(self, device=None):
+        self.model = CNN_Model().to(device)

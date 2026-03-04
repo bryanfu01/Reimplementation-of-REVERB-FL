@@ -33,6 +33,13 @@ class Simulator():
         self.global_server = Global_Server(reserve_data, device = self.device)
 
     def run_simulation(self, attack_type = None, attack_ratio = 0.5, num_rounds = 60, pretrain_rounds = 3):
+
+        print(f"\n--- Initializing new run. Attack: {attack_type} ---")
+        self.acc_history = []
+        self.current_round = 0
+
+        self.global_server.reset_weights()
+
         initial_lr = 1e-4
         decay_rate = 0.9
         decay_steps = 1000.0
