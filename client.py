@@ -59,7 +59,13 @@ class Client():
 
             loss = F.cross_entropy(scores, label)
 
+            if self.attack_type in ["fgsm", "pgd"]:
+                loss = -1.0 * loss 
+                
             loss.backward()
+            
+            if self.attack_type in ["fgsm", "pgd"]:
+                torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
 
             optimizer.step()
 
