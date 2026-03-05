@@ -57,10 +57,14 @@ class Client():
 
             scores = self.model(data)
 
-            loss = F.cross_entropy(scores, label)
-
             if self.attack_type in ["fgsm", "pgd"]:
-                loss = -1.0 * loss 
+                # Create a target where the model is forced to guess randomly (10% for every class)
+                uniform_targets = torch.ones_like(scores) / scores.size(1)
+                
+                # PyTorch cross_entropy natively accepts soft probability targets!
+                loss = F.cross_entropy(scores, uniform_targets)
+            else:
+                loss = F.cross_entropy(scores, label)
                 
             loss.backward()
             
