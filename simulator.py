@@ -112,7 +112,7 @@ class Simulator():
                 file_name = f'/content/drive/MyDrive/{framework_type}_{attack_label}_{diststribution}_checkpoint_round_{i+1}.pt'
 
                 torch.save(checkpoint_data, file_name)
-                print(f"Checkpoint saved for Round {i+1} of {attack_type}!")
+                print(f"Checkpoint saved for Round {i+1} of {attack_label}!")
         
         self._plot_acc()
 
