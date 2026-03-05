@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from cnn_model import CNN_Model
+from poison_attacks import fgsm_attack, pgd_attack, awgn_attack
 
 class Global_Server():
     """
@@ -34,10 +35,11 @@ class Global_Server():
     - reset_state: Resets the state of the global server after a simulation has finished.
     """
 
-    def __init__(self, reserve_set, test_loader, device = None):
+    def __init__(self, reserve_set, test_loader, attack_type = None, device = None):
         self.model = CNN_Model().to(device)
         self.reserve = reserve_set
         self.device = device
+        self.attack_type = attack_type
 
         print("Pre-loading testing dataset into VRAM...")
         test_x_list = []
@@ -70,7 +72,7 @@ class Global_Server():
     def get_weights(self):
         return self.model.state_dict()
     
-    def retrain(self, num_epochs = 1, learning_rate = 1E-4, wd = 1E-4, device = None):
+    def retrain(self, num_epochs = 1, learning_rate = 1E-4, wd = 1E-4, attack_type = None, device = None):
          # Creating optimizer object and setting up parameters
         optimizer = optim.Adam(self.model.parameters(), lr = learning_rate, weight_decay = wd)
         
@@ -78,6 +80,13 @@ class Global_Server():
             for data, label in self.reserve:
 
                 data, label = data.to(device), label.to(device)
+
+                if attack_type == "fgsm":
+                    data = fgsm_attack(self.model, data, label, device=self.device)
+                elif attack_type == "pgd":
+                    data = pgd_attack(self.model, data, label, device=self.device)
+                elif attack_type == "awgn":
+                    data = awgn_attack(data, device=self.device)
 
                 optimizer.zero_grad()
 

@@ -11,13 +11,15 @@ from data_manager import DataManager
 from global_server import Global_Server
 
 class Simulator():
-    def __init__(self, num_clients = 10, path = "./speech_command_dataset"):
+    def __init__(self, num_clients = 10, is_iid = True, path = "./speech_command_dataset"):
         self.current_round = 0
         self.client_list = list(range(num_clients))
         self.acc_history = []
         self.malicious_client_list = None
         self.attack_type = None
         self.framework_active = False
+
+        self.is_iid = is_iid
 
         self.device = torch.device(
             "cuda" if torch.cuda.is_available() 
@@ -26,7 +28,7 @@ class Simulator():
         )
 
         # Instantiating DataManager object
-        self.data_manager = DataManager(num_clients, path)
+        self.data_manager = DataManager(num_clients=num_clients, is_iid=is_iid, data_root=path)
 
         # Slicing off reserve set for server
         reserve_data = self.data_manager.get_reserve_loader()
@@ -52,7 +54,7 @@ class Simulator():
             # First need to pretrain server on reserve set if framework active
             if self.framework_active:
                 print("Pre-training server on reserve set...")
-                self.global_server.retrain(num_epochs=pretrain_rounds, learning_rate=initial_lr, device = self.device)
+                self.global_server.retrain(num_epochs=pretrain_rounds, learning_rate=initial_lr, attack_type=self.attack_type, device = self.device)
         else:
             print(f"\n--- Resuming from checkpoint: {checkpoint_path} ---")
             checkpoint = torch.load(checkpoint_path, map_location=self.device)
@@ -102,8 +104,12 @@ class Simulator():
                     framework_type = "REVERB-FL"
                 else:
                     framework_type = "Baseline FedAvg"
+                if self.is_iid:
+                    diststribution = "iid"
+                else:
+                    diststribution = "non-iid"
 
-                file_name = f'/content/drive/MyDrive/{framework_type}_{attack_label}_checkpoint_round_{i+1}.pt'
+                file_name = f'/content/drive/MyDrive/{framework_type}_{attack_label}_{diststribution}_checkpoint_round_{i+1}.pt'
 
                 torch.save(checkpoint_data, file_name)
                 print(f"Checkpoint saved for Round {i+1} of {attack_type}!")
@@ -121,7 +127,7 @@ class Simulator():
 
         if self.framework_active:
             server_start_time = time.perf_counter()
-            self.global_server.retrain(learning_rate=current_lr, device = self.device)
+            self.global_server.retrain(learning_rate=current_lr, attack_type=self.attack_type, device = self.device)
             server_end_time = time.perf_counter()
             print('Total server retraining time taken: %.2f s' % (server_end_time - server_start_time))
 
@@ -173,15 +179,19 @@ class Simulator():
         else:
             framework_type = "Baseline FedAvg"
         
+        if self.is_iid:
+            diststribution = "iid"
+        else:
+            diststribution = "non-iid"
         # 5. Add labels, title, and grid
-        plt.title(f'{framework_type}: Global Model Accuracy with Attack Type: {attack_label}')
+        plt.title(f'{framework_type}: Global Model Accuracy with Attack Type: {attack_label} and Distribution: {diststribution}')
         plt.xlabel('Communication Round')
         plt.ylabel('Test Accuracy (%)')
         plt.grid(True, linestyle='--', alpha=0.7)
         plt.legend()
         
         # 6. Adjust layout and display the plot
-        filename = f'{framework_type}_accuracy_{attack_label}.png'
+        filename = f'{framework_type}_accuracy_{attack_label}_with_{diststribution}_distribution.png'
         
         plt.savefig(filename, bbox_inches='tight')
         print(f"Graph successfully saved as {filename}")

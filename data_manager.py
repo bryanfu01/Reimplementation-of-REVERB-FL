@@ -9,13 +9,14 @@ class DataManager:
     Stores the monolithic clean dataset and partitions indices for IID distribution.
     """
 
-    def __init__(self, num_clients = 10, data_root = "./data"):
+    def __init__(self, num_clients = 10, is_iid = True, data_root = "./data"):
         self.training_data = SpeechCommandsComplexSTFT(root = data_root, subset = "training")
         self.testing_data = SpeechCommandsComplexSTFT(root = data_root, subset = "testing")
         self.num_clients = num_clients
         
         # Call the partitioning function immediately upon initialization
-        self.client_partitions = self._iid_partition()
+        if is_iid:
+            self.client_partitions = self._iid_partition()
 
     def _iid_partition(self):
         client_dict = {}
