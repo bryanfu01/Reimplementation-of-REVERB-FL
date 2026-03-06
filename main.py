@@ -14,6 +14,7 @@ def main():
     simulation.run_simulation(attack_type = 'fgsm', framework_active=False, num_rounds=num_rounds)
     simulation.run_simulation(attack_type = 'pgd', framework_active=False, num_rounds=num_rounds)
     simulation.run_simulation(attack_type = 'awgn', framework_active=False, num_rounds=num_rounds)
+    """
 
     print("Starting REVERB-FL framework ...")
 
@@ -21,7 +22,6 @@ def main():
     simulation.run_simulation(attack_type = 'fgsm', framework_active=True, num_rounds=num_rounds)
     simulation.run_simulation(attack_type = 'pgd', framework_active=True, num_rounds=num_rounds)  
     simulation.run_simulation(attack_type = 'awgn', framework_active=True, num_rounds=num_rounds)
-    """
 
 if __name__ == "__main__":
     torch.multiprocessing.set_start_method('spawn', force=True)
