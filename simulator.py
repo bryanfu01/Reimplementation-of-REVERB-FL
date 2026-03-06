@@ -50,6 +50,8 @@ class Simulator():
             self.global_server.reset_weights(device=self.device)
             self.framework_active = framework_active
             self.attack_type = attack_type
+            num_attackers = int(attack_ratio * len(self.client_list))
+            self.malicious_client_list = set(random.sample(self.client_list, num_attackers))
 
             # First need to pretrain server on reserve set if framework active
             if self.framework_active:
@@ -64,16 +66,15 @@ class Simulator():
             self.acc_history = checkpoint['acc_history']
             self.attack_type = checkpoint['attack_type']
             self.framework_active = checkpoint['framework_active']
+            self.data_manager.client_partitions = checkpoint['client_partitions']
+            self.malicious_client_list = checkpoint['malicious_client_list']
             
             # 2. Inject the saved weights directly into the server's model
             self.global_server.model.load_state_dict(checkpoint['model_state_dict'])
             
             print(f"Successfully loaded. Resuming at round {self.current_round}.")
 
-        total_client_steps = 0
-
-        num_attackers = int(attack_ratio * len(self.client_list))
-        self.malicious_client_list = set(random.sample(self.client_list, num_attackers))
+        total_client_steps = self.current_round * 10
 
         for i in range(self.current_round, num_rounds):
             start_time = time.perf_counter()
@@ -89,10 +90,12 @@ class Simulator():
             if (i + 1) % 5 == 0:
                 checkpoint_data = {
                     'round': i + 1,
-                    'model_state_dict': self.global_server.model.state_dict(),
+                    'model_state_dict': self.global_server.get_weights(),
                     'acc_history': self.acc_history,
                     'attack_type': self.attack_type,
-                    'framework_active': self.framework_active
+                    'framework_active': self.framework_active,
+                    'client_partitions': self.data_manager.client_partitions,
+                    'malicious_client_list': self.malicious_client_list
                 }
 
                 if self.attack_type is None:
@@ -103,13 +106,13 @@ class Simulator():
                 if self.framework_active:
                     framework_type = "REVERB-FL"
                 else:
-                    framework_type = "Baseline FedAvg"
+                    framework_type = "Baseline_FedAvg"
                 if self.is_iid:
-                    diststribution = "iid"
+                    distribution = "iid"
                 else:
-                    diststribution = "non-iid"
+                    distribution = "non-iid"
 
-                file_name = f'/content/drive/MyDrive/{framework_type}_{attack_label}_{diststribution}_checkpoint_round_{i+1}.pt'
+                file_name = f'/content/drive/MyDrive/{framework_type}_{attack_label}_{distribution}_checkpoint_round_{i+1}.pt'
 
                 torch.save(checkpoint_data, file_name)
                 print(f"Checkpoint saved for Round {i+1} of {attack_label}!")
