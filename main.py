@@ -7,7 +7,7 @@ def main():
     num_rounds = 60
     
     simulation.run_simulation(
-        checkpoint_path="/content/drive/MyDrive/Baseline FedAvg_AWGN_non_iid_checkpoint_round_60.pt"
+        checkpoint_path="/content/drive/MyDrive/Baseline_FedAvg_AWGN_non_iid_checkpoint_round_60.pt"
     )
     """
     simulation.run_simulation(attack_type = None, framework_active=False, num_rounds=num_rounds)
