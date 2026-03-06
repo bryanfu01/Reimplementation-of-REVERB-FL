@@ -59,7 +59,7 @@ class Simulator():
                 self.global_server.retrain(num_epochs=pretrain_rounds, learning_rate=initial_lr, attack_type=self.attack_type, device = self.device)
         else:
             print(f"\n--- Resuming from checkpoint: {checkpoint_path} ---")
-            checkpoint = torch.load(checkpoint_path, map_location=self.device)
+            checkpoint = torch.load(checkpoint_path, map_location=self.device, weights_only=False)
             
             # 1. Restore the mathematical timeline
             self.current_round = checkpoint['round']
