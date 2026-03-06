@@ -180,7 +180,7 @@ class Simulator():
         if self.framework_active:
             framework_type = "REVERB-FL"
         else:
-            framework_type = "Baseline FedAvg"
+            framework_type = "Baseline_FedAvg"
         
         if self.is_iid:
             diststribution = "iid"
