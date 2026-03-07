@@ -80,13 +80,15 @@ class Global_Server():
             for data, label in self.reserve:
 
                 data, label = data.to(device), label.to(device)
-
+                """
+                # Add poisoning if using full REVERB-FL framework
                 if attack_type == "fgsm":
                     data = fgsm_attack(self.model, data, label, device=self.device)
                 elif attack_type == "pgd":
                     data = pgd_attack(self.model, data, label, device=self.device)
                 elif attack_type == "awgn":
                     data = awgn_attack(data, device=self.device)
+                """
 
                 optimizer.zero_grad()
 

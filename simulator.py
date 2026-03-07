@@ -112,7 +112,7 @@ class Simulator():
                 else:
                     distribution = "non-iid"
 
-                file_name = f'/content/drive/MyDrive/{framework_type}_{attack_label}_{distribution}_checkpoint_round_{i+1}.pt'
+                file_name = f'/content/drive/MyDrive/{framework_type}_{attack_label}_{distribution}_checkpoint_round_{i+1}_only_reserve.pt'
 
                 torch.save(checkpoint_data, file_name)
                 print(f"Checkpoint saved for Round {i+1} of {attack_label}!")
@@ -187,7 +187,7 @@ class Simulator():
         else:
             diststribution = "non-iid"
         # 5. Add labels, title, and grid
-        plt.title(f'{framework_type}: Global Model Accuracy with Attack Type: {attack_label} and Distribution: {diststribution}')
+        plt.title(f'{framework_type}: Global Model Accuracy with Attack Type: {attack_label} and Distribution: {diststribution} Only Reserve')
         plt.xlabel('Communication Round')
         plt.ylabel('Test Accuracy (%)')
         plt.grid(True, linestyle='--', alpha=0.7)
