@@ -54,7 +54,7 @@ class DataManager:
         reserve_indices = indices[:num_reserve]
         client_dict["reserve_set"] = reserve_indices.tolist()
         
-        # 3. The remaining 95% goes into a pool for the clients
+        # 3. The remaining 85% goes into a pool for the clients
         client_pool_indices = indices[num_reserve:]
         
         # Extract labels to know how to split the classes
