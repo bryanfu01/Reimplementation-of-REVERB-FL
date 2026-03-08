@@ -71,6 +71,9 @@ class Simulator():
             
             # 2. Inject the saved weights directly into the server's model
             self.global_server.model.load_state_dict(checkpoint['model_state_dict'])
+
+            # Need global server to retain the same 5% reserve set
+            self.global_server.reserve = self.data_manager.get_reserve_loader()
             
             print(f"Successfully loaded. Resuming at round {self.current_round}.")
 
